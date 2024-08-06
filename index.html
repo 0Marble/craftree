@@ -37,10 +37,8 @@
 					<input type="text" name="machine" id="recepie_machine"> <br><br>
 					<br>
 
-					<label>Inputs: </label><br>
-					<div id="recepie_inputs">
-							
-					</div>
+					<h5>Inputs: </h5>
+					<div id="recepie_inputs"> </div>
 					<br>
 					<button id="add_input_button">+</button>
 
@@ -49,13 +47,12 @@
 			</div>
 			<hr>
 
-			<label for="item_to_craft">Item to Craft:</label>
-			<input type="text" name="item_to_craft" id="item_to_craft_input">
-			x
-			<input type="number" id="item_to_craft_input_amount" value=1><br>
-			<button id="item_to_craft_button">Calculate Recepie Tree</button>
-			<div id="recepie_tree">
-			</div>
+			<h4>Crafting Plan</h4>
+			<h5>Items to Craft:</h5>
+			<div id="items_to_craft_list"> </div>
+			<br><button id="add_item_to_craft_button">+</button>
+			<br><br><button id="calculate_tree">Calculate Recepie Tree</button>
+			<div id="recepie_tree"> </div>
 
 			<script src="recepie.js"></script>
 			<script src="tree.js"></script>

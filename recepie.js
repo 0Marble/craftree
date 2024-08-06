@@ -96,10 +96,12 @@ class RecepieStore {
         }
     }
 
-    evaluate(output, amount) {
+    evaluate(outputs, amounts) {
         let actions = []
         let extra = new Map()
-        this._evaluate(output, amount, actions, extra)
+        for (let i = 0; i < outputs.length; i++){
+            this._evaluate(outputs[i], amounts[i], actions, extra)
+        }
         return { actions: actions, extra: extra }
     }
 
