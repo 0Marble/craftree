@@ -95,14 +95,20 @@ class RecepieStore {
     crafting_plan(item, amount) {
         if (!this.items.has(item.name)) {
             console.log("leaf node: ", item)
-            return new CraftingPlan(item, amount, "")
+            return new CraftingPlan(item, amount, null)
         }
         const recepies = this.items.get(item.name)
         let prev = null
         for (const r of recepies) {
             let plan = new CraftingPlan(item, amount, r.machine)
+            let craft_operations_count = Math.ceil(amount / r.output_amount)
+            let to_craft_amount = craft_operations_count * r.output_amount
+            if (to_craft_amount !== amount) {
+                plan.extra.add({item: item, amount: to_craft_amount - amount})
+            }
+
             for (let i = 0; i < r.inputs.length; i++) {
-                let input = this.crafting_plan(r.inputs[i], r.input_amounts[i] / r.output_amount * amount)
+                let input = this.crafting_plan(r.inputs[i], craft_operations_count * r.input_amounts[i])
                 plan.add_input(input)
             }
             plan.set_next_variant(prev)
@@ -117,6 +123,7 @@ class CraftingPlan {
     constructor(item, amount, machine) {
         this.item = item
         this.reqs = []
+        this.extra = new Set()
         this.amount = amount
         this.machine = machine
         this.next_variant = null
@@ -124,6 +131,10 @@ class CraftingPlan {
 
     add_input(plan) {
         this.reqs.push(plan)
+        for (let e of plan.extra) {
+            this.extra.add(e)
+        }
+        plan.extra = null
     }
 
     set_next_variant(plan) {

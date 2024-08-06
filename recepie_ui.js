@@ -46,6 +46,11 @@ function newRecepie() {
     return new Recepie(inputs_list, input_amounts_list, new Item(output), output_amount, machine)
 }
 
+function clearRecepies() {
+    recepie_store = new RecepieStore()
+    recepie_table.replaceChildren() 
+}
+
 function addRecepieToTable(recepie) {
     let new_row = document.createElement("tr")
     let output = document.createElement("th")

@@ -15,8 +15,19 @@ craft_button.addEventListener("click", onCraftComputation)
 function drawPlan(plan, depth) {
     let text = document.createElement("div")
     let spacing = "| ".repeat(depth)
-    let item = `-(${plan.item.print()} x${plan.amount}) @ ${plan.machine}`
-    text.append(spacing, item, document.createElement("br"))
+    let item = `-${plan.item.print()} x${plan.amount}`
+    if (plan.machine !== null) {
+        item += ` @ ${plan.machine}`
+    }
+    text.append(spacing, item)
+    if (plan.extra !== null) {
+        text.append(" + {")
+        for (let e of plan.extra) {
+            text.append(`${e.item.print()} x${e.amount}, `)
+        }
+        text.append("}")
+    }
+    text.append(document.createElement("br"))
     for (let r of plan.reqs) {
         text.append(drawPlan(r, depth + 1))
     }
