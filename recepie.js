@@ -4,7 +4,7 @@ class PriorityQueue {
     }
 
     _parent(i) {
-        return (i - 1) / 2
+        return Math.floor((i - 1) / 2)
     }
 
     _left(i) {
@@ -76,7 +76,11 @@ class Recepie {
         for (let i = 0; i < this.inputs.length; i++) {
             rhs += `${this.inputs[i]} x${this.input_amounts[i]}, `
         }
-        return `${lhs} <- ${rhs}`
+        if (this.machine !== null) {
+            return `${lhs} <- ${rhs} @ ${this.machine}`
+        } else {
+            return `${lhs} <- ${rhs}`
+        }
     }
 }
 
@@ -97,91 +101,146 @@ class RecepieStore {
     }
 
     evaluate(outputs, amounts) {
-        let actions = []
-        let extra = new Map()
+        let actions = new ActionGraph(this)
         for (let i = 0; i < outputs.length; i++){
-            this._evaluate(outputs[i], amounts[i], actions, extra)
+            this._evaluate(outputs[i], amounts[i], actions)
         }
-        return { actions: actions, extra: extra }
+        return actions
     }
 
     _evaluate(output, amount, actions, extra) {
-        console.assert(amount > 0)
         if (!this.recepies.has(output)) {
-            actions.push(Action.Leaf(output, amount))
+            actions.store(output, amount)
             return
-        }
-        if (extra.has(output)) {
-            let { extra_amount, store_idx } = extra.get(output)
-            console.assert(extra_amount !== 0)
-            if (extra_amount === amount) {
-                extra.delete(output)
-                actions.push(Action.Take(output, amount, store_idx))
+        } 
+
+        let recepie = this.recepies.get(output)
+
+        if (actions.nodes.has(output)) {
+            let stored = actions.get_stored_amount(output)
+            console.assert(stored >= 0)
+            if (stored === amount) {
+                actions.take(recepie.output, amount)
                 return
-            } else if (extra_amount > amount) {
-                extra.set(output, {
-                    extra_amount: extra_amount - amount,
-                    store_idx: store_idx,
-                })
-                actions.push(Action.Take(output, amount, store_idx))
+            } else if (stored > amount) {
+                actions.take(recepie.output, amount)
                 return
             } else {
-                extra.delete(output)
-                actions.push(Action.Take(output, extra_amount, store_idx))
-                amount -= extra_amount
-                // not return
+                actions.take(recepie.output, stored)
+                amount -= stored
             }
         }
 
-        console.assert(amount > 0)
-        let recepie = this.recepies.get(output)
         let recepie_instances = Math.ceil(amount / recepie.output_amount)
         for (let i = 0; i < recepie.inputs.length; i++) {
-            this._evaluate(recepie.inputs[i], recepie.input_amounts[i] * recepie_instances, actions, extra)
+            this._evaluate(recepie.inputs[i], recepie.input_amounts[i] * recepie_instances, actions)
         }
 
-        let to_craft_amount = recepie_instances * recepie.output_amount
-        actions.push(Action.Craft(recepie, recepie_instances))
-        if (to_craft_amount !== amount) {
-            console.assert(to_craft_amount > amount)
-            console.assert(!extra.has(output))
-            extra.set(output, {
-                extra_amount: to_craft_amount - amount,
-                store_idx: actions.length
-            })
-            actions.push(Action.Store(output, to_craft_amount - amount))
+        let crafted_amount = recepie_instances * recepie.output_amount;
+        actions.craft(recepie, recepie_instances)
+        if (crafted_amount !== amount) {
+            console.assert(crafted_amount > amount)
+            actions.store(recepie.output, crafted_amount - amount)
         }
     }
 }
 
-class Action {
-    static Craft(recepie, recepie_instances) {
-        let a = new Action()
-        a.kind = 0
-        a.recepie = recepie
-        a.recepie_instances = recepie_instances
-        return a
+class Node {
+    constructor(item, reqs) {
+        this.item = item 
+        this.reqs = reqs
+        this.craft = 0 
+        this.take = 0
+        this.store = 0
     }
-    static Take(item, amount, store_idx) {
-        let a = new Action()
-        a.kind = 1
-        a.item = item
-        a.amount = amount
-        a.store_idx = store_idx
-        return a
+}
+
+class ActionGraph {
+    constructor() {
+        this.nodes = new Map()
     }
-    static Leaf(item, amount) {
-        let a = new Action()
-        a.kind = 2
-        a.item = item
-        a.amount = amount
-        return a
+    craft(recepie, recepie_instances) {
+        if (!this.nodes.has(recepie.output)) {
+            let node = new Node(recepie.output, recepie.inputs.map((i) => this._add_or_get_node(i)))
+            this.nodes.set(recepie.output, node)
+        } 
+        let node = this.nodes.get(recepie.output)
+        node.craft += recepie_instances * recepie.output_amount
     }
-    static Store(item, amount) {
-        let a = new Action()
-        a.kind = 3
-        a.item = item
-        a.amount = amount
-        return a
+    take(item, amount) {
+        console.assert(this.nodes.has(item), item)
+        let node = this.nodes.get(item)
+        node.take += amount
+        console.assert(node.take <= node.store, item)
+    }
+    store(item, amount) {
+        let node = this._add_or_get_node(item)
+        node.store += amount
+    }
+
+    _add_or_get_node(item) {
+        if (!this.nodes.has(item)) {
+            this.nodes.set(item, new Node(item, []))
+        }
+        return this.nodes.get(item)
+    }
+
+    get_stored_amount(item) {
+        console.assert(this.nodes.has(item))
+        let x = this.nodes.get(item)
+        console.assert(x.take <= x.store)
+        return x.store - x.take
+    }
+
+    topological_sort(outputs) {
+        let q = new PriorityQueue()
+        let visit_order = []
+        for (let node of this.nodes.values()) {
+            visit_order.push(node)
+        }
+        let heights = new Map()
+        visit_order.sort((a, b) => -this._height(a.item, heights) + this._height(b.item, heights))
+        console.log(heights)
+
+        return visit_order
+    }
+
+    _height(item, heights) {
+        if (heights.has(item)) {
+            return heights.get(item)
+        } else {
+            console.assert(this.nodes.has(item))
+            let node = this.nodes.get(item)
+            let max_h = 0 
+            for (let r of node.reqs) {
+                let h = this._height(r.item, heights)
+                if (h + 1 > max_h) max_h = h + 1
+            }
+            heights.set(item, max_h)
+            return max_h
+        }
+    }
+}
+
+class Queue {
+    constructor() {
+        this.pop_buf = []
+        this.push_buf = []
+    }
+
+    push(item) {
+        this.push_buf.push(item)
+    }
+
+    is_empty() {
+        return this.push_buf.length === 0 && this.pop_buf.length === 0
+    }
+
+    pop() {
+        if (this.pop_buf.length === 0) {
+            this.pop_buf = this.push_buf.reverse()
+            this.push_buf = []
+        }
+        return this.pop_buf.pop()
     }
 }
