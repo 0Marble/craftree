@@ -35,7 +35,7 @@ function newRecepie() {
     let inputs_list = []
     const inputs = document.getElementsByClassName("recepie_input")
     for (const input of inputs) {
-        inputs_list.push(new Item(input.value))
+        inputs_list.push(input.value)
     }
     let input_amounts_list = []
     const input_amounts = document.getElementsByClassName("recepie_input_amount")
@@ -43,7 +43,7 @@ function newRecepie() {
         input_amounts_list.push(parseInt(input_amount.value))
     }
 
-    return new Recepie(inputs_list, input_amounts_list, new Item(output), output_amount, machine)
+    return new Recepie(inputs_list, input_amounts_list, output, output_amount, machine)
 }
 
 function clearRecepies() {
@@ -55,18 +55,21 @@ function addRecepieToTable(recepie) {
     let new_row = document.createElement("tr")
     let output = document.createElement("th")
     output.scope = "row"
-    output.append(`${recepie.output.name} x${recepie.output_amount}`)
+    output.append(`${recepie.output} x${recepie.output_amount}`)
 
     let inputs = document.createElement("td")
     for (let i = 0; i < recepie.inputs.length; i++) {
-        inputs.append(`${recepie.inputs[i].name} x${recepie.input_amounts[i]}, `)
+        inputs.append(`${recepie.inputs[i]} x${recepie.input_amounts[i]}, `)
     }
 
     let machine = document.createElement("td")
     machine.append(recepie.machine)
 
     let rm = document.createElement("button")
-    rm.addEventListener("click", (e) => new_row.remove())
+    rm.addEventListener("click", (e) => {
+        new_row.remove()
+        recepie_store.remove_recepie(recepie)
+    })
     rm.append("Del")
 
     recepie_table.append(new_row)

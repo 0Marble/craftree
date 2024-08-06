@@ -12,11 +12,9 @@ import_button.addEventListener("change", () => {
         let rc = recepieStoreFromString(src)
         console.log(rc)
         clearRecepies()
-        for (let item of rc.items.keys()) {
-            for (let r of rc.items.get(item)) {
-                recepie_store.add_recepie(r)
-                addRecepieToTable(r)
-            }
+        for (let r of rc.recepies.values()) {
+            recepie_store.add_recepie(r)
+            addRecepieToTable(r)
         }
     }
     reader.readAsText(import_button.files[0])
@@ -34,9 +32,8 @@ function saveAsTextFile(name, contents) {
 
 function recepieStoreToString(recepie_store) {
     let items = {}
-    for (let item of recepie_store.items.keys()) {
-        console.log(item)
-        items[item] = recepie_store.items.get(item)
+    for (let r of recepie_store.recepies.values()) {
+        items[r.output] = r
     }
     console.log(items)
     let s = JSON.stringify(items)
@@ -48,15 +45,14 @@ function recepieStoreFromString(str) {
     let rc = new RecepieStore()
     let items = JSON.parse(str)
     for (let item in items) {
-        for (let r of items[item]) {
-            rc.add_recepie(new Recepie(
-                r.inputs.map((i) => new Item(i.name)),
-                r.input_amounts,
-                new Item(r.output.name),
-                parseInt(r.output_amount),
-                r.machine
-            ))
-        }
+        let r = items[item]
+        rc.add_recepie(new Recepie(
+            r.inputs,
+            r.input_amounts,
+            r.output,
+            parseInt(r.output_amount),
+            r.machine
+        ))
     }
 
     console.log(rc)

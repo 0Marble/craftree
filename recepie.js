@@ -61,16 +61,6 @@ class PriorityQueue {
     }
 }
 
-class Item {
-    constructor(name) {
-        this.name = name
-    }
-
-    print() {
-        return this.name
-    }
-}
-
 class Recepie {
     constructor(inputs, input_amounts, output, output_amount, machine) {
         this.inputs = inputs
@@ -79,69 +69,117 @@ class Recepie {
         this.output_amount = output_amount
         this.machine = machine 
     }
+
+    print() {
+        let lhs = `${this.output} x${this.output_amount}`
+        let rhs = ""
+        for (let i = 0; i < this.inputs.length; i++) {
+            rhs += `${this.inputs[i]} x${this.input_amounts[i]}, `
+        }
+        return `${lhs} <- ${rhs}`
+    }
 }
 
 class RecepieStore {
     constructor() {
-        this.items = new Map()
+        this.recepies = new Map()
     }
 
     add_recepie(recepie) {
-        if (!this.items.has(recepie.output.name)) this.items.set(recepie.output.name, [])
-        this.items.get(recepie.output.name).push(recepie);
-        console.log(this.items)
+        console.assert(!this.recepies.has(recepie.output))
+        this.recepies.set(recepie.output, recepie)
     }
 
-    crafting_plan(item, amount) {
-        if (!this.items.has(item.name)) {
-            console.log("leaf node: ", item)
-            return new CraftingPlan(item, amount, null)
+    remove_recepie(recepie) {
+        if (this.recepies.has(recepie.output)) {
+            this.recepies.delete(recepie.output)
         }
-        const recepies = this.items.get(item.name)
-        let prev = null
-        for (const r of recepies) {
-            let plan = new CraftingPlan(item, amount, r.machine)
-            let craft_operations_count = Math.ceil(amount / r.output_amount)
-            let to_craft_amount = craft_operations_count * r.output_amount
-            if (to_craft_amount !== amount) {
-                plan.extra.add({item: item, amount: to_craft_amount - amount})
-            }
+    }
 
-            for (let i = 0; i < r.inputs.length; i++) {
-                let input = this.crafting_plan(r.inputs[i], craft_operations_count * r.input_amounts[i])
-                plan.add_input(input)
+    evaluate(output, amount) {
+        let actions = []
+        let extra = new Map()
+        this._evaluate(output, amount, actions, extra)
+        return { actions: actions, extra: extra }
+    }
+
+    _evaluate(output, amount, actions, extra) {
+        console.assert(amount > 0)
+        if (!this.recepies.has(output)) {
+            actions.push(Action.Leaf(output, amount))
+            return
+        }
+        if (extra.has(output)) {
+            let { extra_amount, store_idx } = extra.get(output)
+            console.assert(extra_amount !== 0)
+            if (extra_amount === amount) {
+                extra.delete(output)
+                actions.push(Action.Take(output, amount, store_idx))
+                return
+            } else if (extra_amount > amount) {
+                extra.set(output, {
+                    extra_amount: extra_amount - amount,
+                    store_idx: store_idx,
+                })
+                actions.push(Action.Take(output, amount, store_idx))
+                return
+            } else {
+                extra.delete(output)
+                actions.push(Action.Take(output, extra_amount, store_idx))
+                amount -= extra_amount
+                // not return
             }
-            plan.set_next_variant(prev)
-            prev = plan
         }
 
-        return prev
+        console.assert(amount > 0)
+        let recepie = this.recepies.get(output)
+        let recepie_instances = Math.ceil(amount / recepie.output_amount)
+        for (let i = 0; i < recepie.inputs.length; i++) {
+            this._evaluate(recepie.inputs[i], recepie.input_amounts[i] * recepie_instances, actions, extra)
+        }
+
+        let to_craft_amount = recepie_instances * recepie.output_amount
+        actions.push(Action.Craft(recepie, recepie_instances))
+        if (to_craft_amount !== amount) {
+            console.assert(to_craft_amount > amount)
+            console.assert(!extra.has(output))
+            extra.set(output, {
+                extra_amount: to_craft_amount - amount,
+                store_idx: actions.length
+            })
+            actions.push(Action.Store(output, to_craft_amount - amount))
+        }
     }
 }
 
-class CraftingPlan {
-    constructor(item, amount, machine) {
-        this.item = item
-        this.reqs = []
-        this.extra = new Set()
-        this.amount = amount
-        this.machine = machine
-        this.next_variant = null
+class Action {
+    static Craft(recepie, recepie_instances) {
+        let a = new Action()
+        a.kind = 0
+        a.recepie = recepie
+        a.recepie_instances = recepie_instances
+        return a
     }
-
-    add_input(plan) {
-        this.reqs.push(plan)
-        for (let e of plan.extra) {
-            this.extra.add(e)
-        }
-        plan.extra = null
+    static Take(item, amount, store_idx) {
+        let a = new Action()
+        a.kind = 1
+        a.item = item
+        a.amount = amount
+        a.store_idx = store_idx
+        return a
     }
-
-    set_next_variant(plan) {
-        this.next_variant = plan
+    static Leaf(item, amount) {
+        let a = new Action()
+        a.kind = 2
+        a.item = item
+        a.amount = amount
+        return a
     }
-
-    is_leaf() {
-        return this.reqs.length === 0
+    static Store(item, amount) {
+        let a = new Action()
+        a.kind = 3
+        a.item = item
+        a.amount = amount
+        return a
     }
 }
