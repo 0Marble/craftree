@@ -65,15 +65,19 @@ class Item {
     constructor(name) {
         this.name = name
     }
+
+    print() {
+        return this.name
+    }
 }
 
 class Recepie {
-    constructor(inputs, input_amounts, output, output_amount, name) {
+    constructor(inputs, input_amounts, output, output_amount, machine) {
         this.inputs = inputs
         this.input_amounts = input_amounts
         this.output = output
         this.output_amount = output_amount
-        this.name = name
+        this.machine = machine 
     }
 }
 
@@ -83,26 +87,50 @@ class RecepieStore {
     }
 
     add_recepie(recepie) {
-        if (!this.items.has(recepie.output)) this.items[recepie.output] = []
-        this.item[recepie.output].push(recepie);
+        if (!this.items.has(recepie.output.name)) this.items.set(recepie.output.name, [])
+        this.items.get(recepie.output.name).push(recepie);
+        console.log(this.items)
     }
 
-    get_recepies(item) {
-        if (!this.items.has(item)) return null
-        return this.items[item]
-    }
+    crafting_plan(item, amount) {
+        if (!this.items.has(item.name)) {
+            console.log("leaf node: ", item)
+            return new CraftingPlan(item, amount, "")
+        }
+        const recepies = this.items.get(item.name)
+        let prev = null
+        for (const r of recepies) {
+            let plan = new CraftingPlan(item, amount, r.machine)
+            for (let i = 0; i < r.inputs.length; i++) {
+                let input = this.crafting_plan(r.inputs[i], r.input_amounts[i] / r.output_amount * amount)
+                plan.add_input(input)
+            }
+            plan.set_next_variant(prev)
+            prev = plan
+        }
 
-    crafting_plan(item) {
+        return prev
     }
 }
 
 class CraftingPlan {
-    constructor(item) {
+    constructor(item, amount, machine) {
         this.item = item
-        this.reqs = null
+        this.reqs = []
+        this.amount = amount
+        this.machine = machine
+        this.next_variant = null
+    }
+
+    add_input(plan) {
+        this.reqs.push(plan)
+    }
+
+    set_next_variant(plan) {
+        this.next_variant = plan
     }
 
     is_leaf() {
-        return this.reqs === null
+        return this.reqs.length === 0
     }
 }

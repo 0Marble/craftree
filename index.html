@@ -7,9 +7,54 @@
 		<link href="style.css" rel="stylesheet">
 	</head>
 	<body>
-			<script src="tree.js"></script>
-			<script src="recepie.js"></script>
 
-			<button>Load Recepies</button>
+			<h4>Current recepies</h4>
+			<table>
+					<thead>
+							<tr>
+									<th scope="col">Output</th>
+									<th scope="col">Inputs</th>
+									<th scope="col">Machine</th>
+							</tr>
+					</thead>
+					<tbody id="recepie_table">
+						
+					</tbody>
+			</table>
+			<hr>
+
+			<h4>Add new recepie</h4>
+			<div id = "new_recepie_form">
+					<label for="to_craft">Item to Craft:</label>
+					<input type="text" name="to_craft" id="recepie_output"> 
+					x
+					<input type="number" value=1 id="recepie_output_amount"><br><br>
+					<label for="machine">Machine:</label>
+					<input type="text" name="machine" id="recepie_machine"> <br><br>
+					<br>
+
+					<label>Inputs: </label><br>
+					<div id="recepie_inputs">
+							
+					</div>
+					<br>
+					<button id="add_input_button">+</button>
+
+					<br><br>
+					<button id="add_recepie_button">Add Recepie!</button>
+			</div>
+			<hr>
+
+			<label for="item_to_craft">Item to Craft:</label>
+			<input type="text" name="item_to_craft" id="item_to_craft_input">
+			x
+			<input type="number" id="item_to_craft_input_amount" value=1><br>
+			<button id="item_to_craft_button">Calculate Recepie Tree</button>
+			<div id="recepie_tree">
+			</div>
+
+			<script src="recepie.js"></script>
+			<script src="tree.js"></script>
+			<script src="recepie_ui.js"> </script>
 	</body>
 </html>
