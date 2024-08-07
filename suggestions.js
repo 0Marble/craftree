@@ -40,10 +40,14 @@ class Suggestions {
         this.input = input
         this.getWords = getWords
 
-        this.inputDiv.addEventListener("input", () => this.showSuggestions())
+        this.input.addEventListener("input", () => this.showSuggestions())
         document.addEventListener("click", () => {
             let allSuggestionBoxes = document.getElementsByClassName(Suggestions.BOX_CLASS_NAME)
+            let to_remove = []
             for (let b of allSuggestionBoxes) {
+                to_remove.push(b)
+            }
+            for (let b of to_remove) {
                 b.remove()
             }
         })

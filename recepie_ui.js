@@ -3,6 +3,7 @@ const recepie_form = document.getElementById("new_recepie_form")
 const recepie_inputs_div = document.getElementById("recepie_inputs")
 const add_input_button = document.getElementById("add_input_button")
 const add_recepie_button = document.getElementById("add_recepie_button")
+const reset_recepie_button = document.getElementById("reset_recepie_button")
 
 let recepie_store = new RecepieStore()
 new Suggestions(
@@ -11,12 +12,13 @@ new Suggestions(
     () => recepie_store.getMachines()
 )
 
-function newInputForm() {
+function newInputForm(item, amount) {
     let input_block = document.createElement("div")
     let new_input = document.createElement("input")
     let br = document.createElement("br")
     let amt = document.createElement("input")
     let rm = document.createElement("button")
+    input_block.className = "recepie_input_block"
     rm.addEventListener("click", (e) => input_block.remove())
     rm.append("Del")
     new_input.type = "text"
@@ -27,11 +29,47 @@ function newInputForm() {
     recepie_inputs_div.append(input_block)
     input_block.append(new_input, "x", amt, rm, br)
 
+    console.assert((item === undefined) === (amount === undefined))
+    if (item !== undefined) {
+        new_input.value = item
+        amt.value = amount
+    }
+
     new Suggestions(input_block, new_input, () => recepie_store.getItems())
 }
-newInputForm()
+resetRecepieForm()
 
-add_input_button.addEventListener("click", newInputForm)
+function resetRecepieForm(recepie) {
+    const output = document.getElementById("recepie_output")
+    const output_amount = document.getElementById("recepie_output_amount")
+    const machine = document.getElementById("recepie_machine")
+    output.value = ""
+    output_amount.value = 1
+    machine.value = ""
+
+    let inputs = recepie_inputs_div.getElementsByClassName("recepie_input_block")
+    let to_remove = []
+    for (let i of inputs) {
+        to_remove.push(i)
+    }
+    for (let i of to_remove) {
+        i.remove()
+    }
+
+    if (recepie !== undefined) {
+        output.value = recepie.output
+        output_amount.value = recepie.output_amount
+        machine.value = recepie.machine
+        for (let i = 0; i < recepie.inputs.length; i++) {
+            newInputForm(recepie.inputs[i], recepie.input_amounts[i])
+        }
+    } else {
+        newInputForm()
+    }
+}
+
+add_input_button.addEventListener("click", () => newInputForm())
+reset_recepie_button.addEventListener("click", () => resetRecepieForm())
 
 function newRecepie() {
     const output = document.getElementById("recepie_output").value
@@ -79,8 +117,16 @@ function addRecepieToTable(recepie) {
     })
     rm.append("Del")
 
+    let edit = document.createElement("button")
+    edit.addEventListener("click", () => {
+        new_row.remove()
+        recepie_store.remove_recepie(recepie)
+        resetRecepieForm(recepie)
+    })
+    edit.append("Edit")
+
     recepie_table.append(new_row)
-    new_row.append(output, inputs, machine, rm)
+    new_row.append(output, inputs, machine, rm, edit)
 }
 
 add_recepie_button.addEventListener("click", (e) => {
