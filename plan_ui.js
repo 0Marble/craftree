@@ -49,6 +49,9 @@ function drawPlan(plan) {
     
     for (let node of plan) {
         let li = document.createElement("li")
+        let checkbox = document.createElement("input")
+        checkbox.type = "checkbox"
+        li.append(checkbox)
         if (node.craft !== 0) {
             li.append(`Craft ${node.item} x${node.craft}`)
         } else {
