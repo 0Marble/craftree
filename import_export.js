@@ -1,6 +1,40 @@
 const import_button = document.getElementById("import_recepies_button")
 const export_button = document.getElementById("export_recepies_button")
 
+function saveRecepiesToLocalStorage(recepie_store) {
+    let s = recepieStoreToString(recepie_store)
+    console.log("Saving...")
+    try {
+        let ls = window.localStorage
+        ls.setItem("recepies", s)
+    } catch (e) {
+        alert("Couldn't save recepies to the browser local storage, consider exporting them")
+        return false
+    }
+    return true
+}
+
+function loadRecepiesFromLocalStorage() {
+    console.log("Loading...")
+    try {
+        let ls = window.localStorage
+        let src = ls.getItem("recepies")
+        if (src === null) {
+            return
+        }
+        let rc = recepieStoreFromString(src)
+        clearRecepies()
+        for (let r of rc.recepies.values()) {
+            recepie_store.add_recepie(r)
+            addRecepieToTable(r)
+        }
+    } catch(e) {
+        alert("Couldn't load recepies from the browser local storage, consider importing them")
+    }
+}
+
+loadRecepiesFromLocalStorage()
+
 export_button.addEventListener("click", () => {
     saveAsTextFile("recepies.json", recepieStoreToString(recepie_store))
 })
@@ -10,7 +44,6 @@ import_button.addEventListener("change", () => {
     reader.onload = (e) => {
         let src = e.target.result
         let rc = recepieStoreFromString(src)
-        console.log(rc)
         clearRecepies()
         for (let r of rc.recepies.values()) {
             recepie_store.add_recepie(r)
@@ -35,14 +68,12 @@ function recepieStoreToString(recepie_store) {
     for (let r of recepie_store.recepies.values()) {
         items[r.output] = r
     }
-    console.log(items)
     let s = JSON.stringify(items)
-    console.log(s)
     return s
 }
 
 function recepieStoreFromString(str) {
-    let rc = new RecepieStore()
+    let rc = new RecepieStore(false)
     let items = JSON.parse(str)
     for (let item in items) {
         let r = items[item]
@@ -55,6 +86,5 @@ function recepieStoreFromString(str) {
         ))
     }
 
-    console.log(rc)
     return rc
 }

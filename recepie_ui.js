@@ -5,7 +5,7 @@ const add_input_button = document.getElementById("add_input_button")
 const add_recepie_button = document.getElementById("add_recepie_button")
 const reset_recepie_button = document.getElementById("reset_recepie_button")
 
-let recepie_store = new RecepieStore()
+let recepie_store = new RecepieStore(true)
 new Suggestions(
     document.getElementById("machine_div"), 
     document.getElementById("recepie_machine"), 
@@ -92,7 +92,7 @@ function newRecepie() {
 }
 
 function clearRecepies() {
-    recepie_store = new RecepieStore()
+    recepie_store = new RecepieStore(true)
     recepie_table.replaceChildren() 
 }
 

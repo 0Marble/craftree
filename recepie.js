@@ -85,8 +85,9 @@ class Recepie {
 }
 
 class RecepieStore {
-    constructor() {
+    constructor(save_to_local_storage) {
         this.recepies = new Map()
+        this.save_to_local_storage = save_to_local_storage
     }
 
     getItems() {
@@ -112,6 +113,11 @@ class RecepieStore {
     add_recepie(recepie) {
         console.assert(!this.recepies.has(recepie.output))
         this.recepies.set(recepie.output, recepie)
+        if (this.save_to_local_storage) {
+            if (!saveRecepiesToLocalStorage(this)) {
+                this.save_to_local_storage = false   
+            }
+        }
     }
 
     remove_recepie(recepie) {
