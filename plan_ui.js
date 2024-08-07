@@ -19,6 +19,8 @@ function addNewCraftTargetField() {
     amt.className = "item_to_craft_amount"
     input_block.append(new_input, "x", amt, rm, br)
     craft_targets.append(input_block)
+
+    new Suggestions(input_block, new_input, () => recepie_store.getItems())
 }
 
 addNewCraftTargetField()
@@ -36,7 +38,7 @@ function onCraftComputation() {
         amounts.push(parseInt(amount.value))
     }
 
-    let plan = recepie_store.evaluate(items, amounts).topological_sort(items).reverse()
+    let plan = recepie_store.evaluate(items, amounts).topological_sort(items)
     recepie_tree.replaceChildren(drawPlan(plan))
 }
 

@@ -89,6 +89,26 @@ class RecepieStore {
         this.recepies = new Map()
     }
 
+    getItems() {
+        let items = new Set()
+        for (let r of this.recepies.values()) {
+            items.add(r.output)
+            for (let i of r.inputs) {
+                items.add(i)
+            }
+        }
+
+        return items
+    }
+
+    getMachines() {
+        let m = new Set()
+        for (let r of this.recepies.values()) {
+            m.add(r.machine)
+        }
+        return m
+    }
+
     add_recepie(recepie) {
         console.assert(!this.recepies.has(recepie.output))
         this.recepies.set(recepie.output, recepie)
@@ -199,7 +219,7 @@ class ActionGraph {
             visit_order.push(node)
         }
         let heights = new Map()
-        visit_order.sort((a, b) => -this._height(a.item, heights) + this._height(b.item, heights))
+        visit_order.sort((a, b) => this._height(a.item, heights) - this._height(b.item, heights))
         console.log(heights)
 
         return visit_order

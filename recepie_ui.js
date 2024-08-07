@@ -5,6 +5,11 @@ const add_input_button = document.getElementById("add_input_button")
 const add_recepie_button = document.getElementById("add_recepie_button")
 
 let recepie_store = new RecepieStore()
+new Suggestions(
+    document.getElementById("machine_div"), 
+    document.getElementById("recepie_machine"), 
+    () => recepie_store.getMachines()
+)
 
 function newInputForm() {
     let input_block = document.createElement("div")
@@ -21,6 +26,8 @@ function newInputForm() {
     amt.className = "recepie_input_amount"
     recepie_inputs_div.append(input_block)
     input_block.append(new_input, "x", amt, rm, br)
+
+    new Suggestions(input_block, new_input, () => recepie_store.getItems())
 }
 newInputForm()
 
