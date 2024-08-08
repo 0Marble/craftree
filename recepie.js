@@ -1,65 +1,3 @@
-class PriorityQueue {
-    constructor() {
-        this.vals = []
-    }
-
-    _parent(i) {
-        return Math.floor((i - 1) / 2)
-    }
-
-    _left(i) {
-        return 2 * i + 1
-    }
-
-    _right(i) {
-        return 2 * i + 2
-    }
-
-    push(item, priority) {
-        this.vals.push({val: item, priority: priority})
-        let idx = this.vals.length - 1
-        while (idx != 0) {
-            let parent = this._parent(idx)
-            if (this.vals[parent].priority < this.vals[idx].priority) {
-                let t = this.vals[parent].priority 
-                this.vals[parent].priority = this.vals[idx].priority 
-                this.vals[idx].priority = t
-                idx = parent
-            } else {
-                break
-            }
-        }
-    }
-
-    pop() {
-        if (this.vals.length === 0) return null;
-        let idx = this.vals.length - 1
-        if (idx === 0) return this.vals.pop()
-        let res = this.vals[0]
-        this.vals[0] = this.vals.pop()
-
-        while (idx + 1 !== this.vals.length) {
-            let l = this._left(idx)
-            let r = this._right(idx)
-            let biggest = idx
-            if (this.vals.length > l && this.vals[l].priority > this.vals[biggest].priority) {
-                biggest = l
-            }
-            if (this.vals.length > r && this.vals[r].priority > this.vals[biggest].priority) {
-                biggest = r
-            }
-            if (biggest === idx) {
-                break
-            }
-
-            let t = this.vals[biggest]
-            this.vals[biggest] = this.vals[idx]
-            this.vals[idx] = t
-            idx = biggest
-        }
-        return res
-    }
-}
 
 class Recepie {
     constructor(inputs, input_amounts, output, output_amount, machine) {
@@ -126,125 +64,115 @@ class RecepieStore {
         }
     }
 
-    evaluate(outputs, amounts) {
-        let actions = new ActionGraph(this)
-        for (let i = 0; i < outputs.length; i++){
-            this._evaluate(outputs[i], amounts[i], actions)
+    evaluate(outputs, amounts, storage) {
+        let actions = []
+        let sim = storage.clone()
+        for (let i = 0; i < outputs.length; i++) {
+            this._evaluate(outputs[i], amounts[i], actions, sim)
         }
         return actions
     }
 
-    _evaluate(output, amount, actions, extra) {
-        if (!this.recepies.has(output)) {
-            actions.store(output, amount)
-            return
-        } 
-
-        let recepie = this.recepies.get(output)
-
-        if (actions.nodes.has(output)) {
-            let stored = actions.get_stored_amount(output)
-            console.assert(stored >= 0)
-            if (stored === amount) {
-                actions.take(recepie.output, amount)
-                return
-            } else if (stored > amount) {
-                actions.take(recepie.output, amount)
+    _evaluate(output, amount, actions, storage) {
+        console.assert(amount > 0)
+        if (storage.has(output)) {
+            let stored = storage.cur(output)
+            if (stored >= amount) {
+                storage.get(output, amount)
                 return
             } else {
-                actions.take(recepie.output, stored)
+                storage.get(output, stored)
                 amount -= stored
             }
         }
-
-        let recepie_instances = Math.ceil(amount / recepie.output_amount)
-        for (let i = 0; i < recepie.inputs.length; i++) {
-            this._evaluate(recepie.inputs[i], recepie.input_amounts[i] * recepie_instances, actions)
-        }
-
-        let crafted_amount = recepie_instances * recepie.output_amount;
-        actions.craft(recepie, recepie_instances)
-        if (crafted_amount !== amount) {
-            console.assert(crafted_amount > amount)
-            actions.store(recepie.output, crafted_amount - amount)
-        }
-    }
-}
-
-class Node {
-    constructor(item, reqs) {
-        this.item = item 
-        this.reqs = reqs
-        this.craft = 0 
-        this.take = 0
-        this.store = 0
-    }
-}
-
-class ActionGraph {
-    constructor() {
-        this.nodes = new Map()
-    }
-    craft(recepie, recepie_instances) {
-        if (!this.nodes.has(recepie.output)) {
-            let node = new Node(recepie.output, recepie.inputs.map((i) => this._add_or_get_node(i)))
-            this.nodes.set(recepie.output, node)
+        if (!this.recepies.has(output)) {
+            actions.push(Action.Get(output, amount))
+            return
         } 
-        let node = this.nodes.get(recepie.output)
-        node.craft += recepie_instances * recepie.output_amount
-    }
-    take(item, amount) {
-        console.assert(this.nodes.has(item), item)
-        let node = this.nodes.get(item)
-        node.take += amount
-        console.assert(node.take <= node.store, item)
-    }
-    store(item, amount) {
-        let node = this._add_or_get_node(item)
-        node.store += amount
-    }
-
-    _add_or_get_node(item) {
-        if (!this.nodes.has(item)) {
-            this.nodes.set(item, new Node(item, []))
+        let recepie = this.recepies.get(output)
+        console.assert(recepie.output === output)
+        
+        let instances = Math.ceil(amount / recepie.output_amount);
+        for (let i = 0; i < recepie.inputs.length; i++) {
+            this._evaluate(recepie.inputs[i], recepie.input_amounts[i] * instances, actions, storage)
         }
-        return this.nodes.get(item)
-    }
 
-    get_stored_amount(item) {
-        console.assert(this.nodes.has(item))
-        let x = this.nodes.get(item)
-        console.assert(x.take <= x.store)
-        return x.store - x.take
-    }
-
-    topological_sort(outputs) {
-        let q = new PriorityQueue()
-        let visit_order = []
-        for (let node of this.nodes.values()) {
-            visit_order.push(node)
+        let crafted = instances * recepie.output_amount
+        console.assert(crafted >= amount)
+        if (crafted > amount) {
+            console.assert(!storage.has(output))
+            storage.put(output, crafted - amount)
         }
-        let heights = new Map()
-        visit_order.sort((a, b) => this._height(a.item, heights) - this._height(b.item, heights))
-        console.log(heights)
+        actions.push(Action.Craft(recepie, instances))
+    }
+}
 
-        return visit_order
+class Action {
+    constructor() {
+        this.kind = 0
+    }
+    static Get(item, amount) {
+        let a = new Action()
+        a.kind = 0
+        a.item = item
+        a.amount = amount
+        return a
+    }
+    static Craft(recepie, instances) {
+        let a = new Action()
+        a.kind = 1
+        a.recepie = recepie
+        a.instances = instances
+        return a
+    }
+}
+
+class Storage {
+    constructor() {
+        this.stored = new Map()
     }
 
-    _height(item, heights) {
-        if (heights.has(item)) {
-            return heights.get(item)
+    clone() {
+        let st = new Storage()
+        for (let x of this.stored.keys()) {
+            st.stored.set(x, this.stored.get(x))
+        }
+        return st
+    }
+
+    put(item, amount) {
+        if (!this.stored.has(item)) this.stored.set(item, amount)
+        else this.stored.set(item, this.cur(item) + amount)
+        return this.cur(item)
+    }
+
+    has(item) {
+        return this.stored.has(item)
+    }
+
+    cur(item) {
+        console.assert(this.stored.has(item), this, item)
+        let amount = this.stored.get(item)
+        console.assert(amount > 0, this, item)
+        return amount
+    }
+
+    get(item, amount) {
+        let stored = this.cur(item)
+        console.assert(stored >= amount)
+        if (stored === amount) {
+            this.stored.delete(item)
         } else {
-            console.assert(this.nodes.has(item))
-            let node = this.nodes.get(item)
-            let max_h = 0 
-            for (let r of node.reqs) {
-                let h = this._height(r.item, heights)
-                if (h + 1 > max_h) max_h = h + 1
-            }
-            heights.set(item, max_h)
-            return max_h
+            this.stored.set(item, stored - amount)
         }
+    }
+
+    items() {
+        let res = []
+        for (let i of this.stored.keys()) {
+            res.push({item: i, amount: this.stored.get(i)})
+        }
+        return res
     }
 }
 
