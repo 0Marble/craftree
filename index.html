@@ -30,9 +30,9 @@
 			<h4>Add new recepie</h4>
 			<div id = "new_recepie_form">
 					<label for="to_craft">Item to Craft:</label>
-					<input type="text" name="to_craft" id="recepie_output"> 
+					<input type="text" name="to_craft" id="target_item"> 
 					x
-					<input type="number" value=1 id="recepie_output_amount">
+					<input type="number" value=1 id="target_amount">
 					<div id="machine_div">
 					<label for="machine">Machine:</label>
 					<input type="text" name="machine" id="recepie_machine"> 
@@ -52,23 +52,23 @@
 
 			<h4>Crafting Plan</h4>
 			<h5>Items to Craft:</h5>
-			<div id="items_to_craft_list"> </div>
-			<br><button id="add_item_to_craft_button">+</button>
-			<br><br><button id="calculate_tree">Calculate Recepie Tree</button>
+			<div id="targets_list"> </div>
+			<br><button id="add_target">+</button>
+			<br><br><button id="evaluate_craft">Calculate Recepie Tree</button>
 
 			<h5>Storage:</h5>
 			<div id="storage"> </div>
 			<h5>Required:</h5>
 			<div id="requirements"> </div>
 			<h5>To Craft:</h5>
-			<div id="actions"> </div>
+			<div id="steps"> </div>
 
-			<script src="evaluate.js"></script>
-			<script src="plan.js"></script>
-			<script src="recepie.js"></script>
-			<script src="ui/suggestions.js"> </script>
-			<script src="ui/plan.js"></script>
-			<script src="ui/recepie.js"> </script>
-			<script src="import_export.js"> </script>
+			<script type="module" src="evaluate.js"></script>
+			<script type="module" src="plan.js"></script>
+			<script type="module" src="recepie.js"></script>
+			<script type="module" src="ui/suggestions.js"> </script>
+			<script type="module" src="ui/plan.js"></script>
+			<script type="module" src="ui/recepie.js"> </script>
+			<script type="module" src="ui/files.js"> </script>
 	</body>
 </html>

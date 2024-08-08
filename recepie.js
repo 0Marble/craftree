@@ -1,4 +1,4 @@
-class Recepie {
+export class Recepie {
     constructor(inputs, output, machine) {
         this.inputs = inputs
         this.output = output
@@ -20,7 +20,7 @@ class Recepie {
     }
 }
 
-class RecepieStore {
+export class RecepieStore {
     constructor() {
         this.recepies = new Map()
     }
@@ -57,7 +57,7 @@ class RecepieStore {
     }
 
     getAllRecepies() {
-        return this.recepies
+        return this.recepies.values()
     }
     hasRecepie(item) {
         return this.recepies.has(item)
@@ -65,5 +65,26 @@ class RecepieStore {
     getRecepie(item) {
         console.assert(this.recepies.has(item))
         return this.recepies.get(item)
+    }
+
+    toString() {
+        let items = {}
+        for (let r of this.recepies.values()) {
+            items[r.output.item] = r
+        }
+        let s = JSON.stringify(items)
+        return s
+    }
+    static fromString(str) {
+        let rc = new RecepieStore()
+        let items = JSON.parse(str)
+        for (let r of Object.values(items)) {
+            rc.addRecepie(new Recepie(
+                r.inputs,
+                r.output,
+                r.machine
+            ))
+        }
+        return rc
     }
 }

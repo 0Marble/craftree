@@ -34,7 +34,7 @@ function editDistance(s1, s2) {
     return buf[prev][s2.length]
 }
 
-class Suggestions {
+export class Suggestions {
     constructor(inputDiv, input, getWords) {
         this.inputDiv = inputDiv
         this.input = input

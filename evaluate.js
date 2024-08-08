@@ -1,5 +1,5 @@
 
-class Evaluator {
+export class Evaluator {
     constructor(recepie_store) {
         this.recepie_store = recepie_store
     }
@@ -7,14 +7,14 @@ class Evaluator {
     evaluate(targets, storage) {
         let actions = []
         let sim = storage.clone()
-        for (let {item, amount} of targets) {
+        for (let [item, amount] of targets) {
             this._evaluate(item, amount, actions, sim)
         }
         return actions
     }
 
     _evaluate(item, amount, actions, storage) {
-        console.assert(amount > 0)
+        console.assert(amount > 0, item, amount)
         if (storage.has(item)) {
             let stored = storage.cur(item)
             if (stored >= amount) {
@@ -30,9 +30,9 @@ class Evaluator {
             return
         } 
         let recepie = this.recepie_store.getRecepie(item)
-        console.assert(recepie.output === item)
+        console.assert(recepie.output.item === item, item, amount, recepie)
         
-        let instances = Math.ceil(amount / recepie.output_amount);
+        let instances = Math.ceil(amount / recepie.output.amount);
         for (let {item, amount} of recepie.inputs) {
             this._evaluate(item, amount * instances, actions, storage)
         }
@@ -67,14 +67,14 @@ class Action {
     }
 }
 
-class Storage {
+export class Storage {
     constructor() {
         this.stored = new Map()
     }
 
     clone() {
         let st = new Storage()
-        for (let {item, amount} of this.stored) {
+        for (let [item, amount] of this.stored) {
             st.stored.set(item, amount)
         }
         return st
@@ -109,7 +109,7 @@ class Storage {
 
     items() {
         let res = []
-        for (let {item, amount} of this.stored) {
+        for (let [item, amount] of this.stored) {
             res.push({item, amount})
         }
         return res
