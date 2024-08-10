@@ -1,50 +1,50 @@
-// function saveRecepiesToLocalStorage(recepie_store) {
-//     let s = recepieStoreToString(recepie_store)
+// function saveRecipesToLocalStorage(recipe_store) {
+//     let s = recipeStoreToString(recipe_store)
 //     console.log("Saving...")
 //     try {
 //         let ls = window.localStorage
-//         ls.setItem("recepies", s)
+//         ls.setItem("recipes", s)
 //     } catch (e) {
-//         alert("Couldn't save recepies to the browser local storage, consider exporting them")
+//         alert("Couldn't save recipes to the browser local storage, consider exporting them")
 //         return false
 //     }
 //     return true
 // }
 //
-// function loadRecepiesFromLocalStorage() {
+// function loadRecipesFromLocalStorage() {
 //     console.log("Loading...")
 //     try {
 //         let ls = window.localStorage
-//         let src = ls.getItem("recepies")
+//         let src = ls.getItem("recipes")
 //         if (src === null) {
 //             return
 //         }
-//         let rc = recepieStoreFromString(src)
-//         clearRecepies()
-//         for (let r of rc.recepies.values()) {
-//             recepie_store.add_recepie(r)
-//             addRecepieToTable(r)
+//         let rc = recipeStoreFromString(src)
+//         clearRecipes()
+//         for (let r of rc.recipes.values()) {
+//             recipe_store.add_recipe(r)
+//             addRecipeToTable(r)
 //         }
 //     } catch(e) {
-//         alert("Couldn't load recepies from the browser local storage, consider importing them")
+//         alert("Couldn't load recipes from the browser local storage, consider importing them")
 //     }
 // }
 //
-// loadRecepiesFromLocalStorage()
+// loadRecipesFromLocalStorage()
 //
 // export_button.addEventListener("click", () => {
-//     saveAsTextFile("recepies.json", recepieStoreToString(recepie_store))
+//     saveAsTextFile("recipes.json", recipeStoreToString(recipe_store))
 // })
 //
 // import_button.addEventListener("change", () => {
 //     let reader = new FileReader()
 //     reader.onload = (e) => {
 //         let src = e.target.result
-//         let rc = recepieStoreFromString(src)
-//         clearRecepies()
-//         for (let r of rc.recepies.values()) {
-//             recepie_store.add_recepie(r)
-//             addRecepieToTable(r)
+//         let rc = recipeStoreFromString(src)
+//         clearRecipes()
+//         for (let r of rc.recipes.values()) {
+//             recipe_store.add_recipe(r)
+//             addRecipeToTable(r)
 //         }
 //     }
 //     reader.readAsText(import_button.files[0])

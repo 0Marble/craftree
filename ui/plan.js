@@ -7,7 +7,7 @@ const craft_button = document.getElementById("evaluate_craft")
 const add_target_button = document.getElementById("add_target")
 
 import { Planner } from "../plan.js"
-import { recepie_store } from "./recepie.js"
+import { recipe_store } from "./recipe.js"
 import { itemWithAmount } from "./components.js"
 
 const target_item_class = "target_item_class"
@@ -22,7 +22,7 @@ add_target_button.addEventListener("click", () => {
             target_div_class, 
             target_item_class,
             target_amount_class,
-            () => recepie_store.getItems(),
+            () => recipe_store.getItems(),
         ) 
     )
 })
@@ -36,7 +36,7 @@ function evaluateCraft() {
     for (let i = 0; i < target_items.length; i++) {
         planner.addTarget(target_items[i].value, parseInt(target_amounts[i].value))
     }
-    planner.recalculate(recepie_store)
+    planner.recalculate(recipe_store)
     redraw()
 }
 
@@ -54,7 +54,7 @@ function drawStorage() {
         let rm = document.createElement("button")
         rm.append("Del")
         rm.addEventListener("click", () => {
-            planner.setAmountInStorage(item, 0, recepie_store)
+            planner.setAmountInStorage(item, 0, recipe_store)
             redraw()
         })
 
@@ -85,7 +85,7 @@ function drawRequirements() {
 
 function drawToCraft() {
     let ul = document.createElement("ul")
-    for (let [item, {recepie, instances}] of planner.getSteps()) {
+    for (let [item, {recipe, instances}] of planner.getSteps()) {
         let li = document.createElement("li")
         let chk = document.createElement("input")
         chk.type = "checkbox"
@@ -98,7 +98,7 @@ function drawToCraft() {
             redraw()
         })
 
-        li.append(chk, `(${recepie.print()}) x${instances}`)
+        li.append(chk, `(${recipe.print()}) x${instances}`)
         ul.append(li)
     }
     steps_div.replaceChildren(ul)

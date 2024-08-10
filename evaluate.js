@@ -1,7 +1,7 @@
 
 export class Evaluator {
-    constructor(recepie_store) {
-        this.recepie_store = recepie_store
+    constructor(recipe_store) {
+        this.recipe_store = recipe_store
     }
 
     evaluate(targets, storage) {
@@ -25,25 +25,25 @@ export class Evaluator {
                 amount -= stored
             }
         }
-        if (!this.recepie_store.hasRecepie(item)) {
+        if (!this.recipe_store.hasRecipe(item)) {
             actions.push(Action.Get(item, amount))
             return
         } 
-        let recepie = this.recepie_store.getRecepie(item)
-        console.assert(recepie.output.item === item, item, amount, recepie)
+        let recipe = this.recipe_store.getRecipe(item)
+        console.assert(recipe.output.item === item, item, amount, recipe)
         
-        let instances = Math.ceil(amount / recepie.output.amount);
-        for (let {item, amount} of recepie.inputs) {
+        let instances = Math.ceil(amount / recipe.output.amount);
+        for (let {item, amount} of recipe.inputs) {
             this._evaluate(item, amount * instances, actions, storage)
         }
 
-        let crafted = instances * recepie.output.amount
+        let crafted = instances * recipe.output.amount
         console.assert(crafted >= amount)
         if (crafted > amount) {
             console.assert(!storage.has(item))
             storage.put(item, crafted - amount)
         }
-        actions.push(Action.Craft(recepie, instances))
+        actions.push(Action.Craft(recipe, instances))
     }
 }
 
@@ -58,10 +58,10 @@ class Action {
         a.amount = amount
         return a
     }
-    static Craft(recepie, instances) {
+    static Craft(recipe, instances) {
         let a = new Action()
         a.kind = 1
-        a.recepie = recepie
+        a.recipe = recipe
         a.instances = instances
         return a
     }

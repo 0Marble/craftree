@@ -29,19 +29,19 @@ export class Planner {
         this.completed = new Map()
     }
 
-    recalculate(recepie_store) {
-        let actions = new Evaluator(recepie_store).evaluate(this.targets, this.storage)
+    recalculate(recipe_store) {
+        let actions = new Evaluator(recipe_store).evaluate(this.targets, this.storage)
         this._summarizeActions(actions)
     }
 
-    setAmountInStorage(item, amount, recepie_store) {
+    setAmountInStorage(item, amount, recipe_store) {
         if (this.storage.has(item)) {
             this.storage.get(item, this.storage.cur(item))
         } 
         if (amount > 0) {
             this.storage.put(item, amount)
         }
-        this.recalculate(recepie_store)
+        this.recalculate(recipe_store)
     }
     completeRequirement(item) {
         console.assert(this.reqs.has(item))
@@ -52,11 +52,11 @@ export class Planner {
     completeStep(item) {
         console.assert(this.steps.has(item))
         console.assert(this.completed.has(item))
-        let {recepie, instances} = this.steps.get(item)
-        let target_amount = recepie.output.amount * instances
+        let {recipe, instances} = this.steps.get(item)
+        let target_amount = recipe.output.amount * instances
         this.completed.set(item, true)
         this.storage.put(item, target_amount)
-        for (let {item, amount} of recepie.inputs) {
+        for (let {item, amount} of recipe.inputs) {
             this.storage.get(item, amount * instances)
         }
     }
@@ -70,9 +70,9 @@ export class Planner {
     }
     getSteps() {
         let res = new Map()
-        for (let [item, {recepie, instances}] of this.steps) {
+        for (let [item, {recipe, instances}] of this.steps) {
             if (!this.completed.get(item)) 
-                res.set(item, {recepie, instances})
+                res.set(item, {recipe, instances})
         }
         return res
     }
@@ -84,8 +84,8 @@ export class Planner {
     }
     isStepAvailable(item) {
         console.assert(this.steps.has(item), item)
-        let {recepie, instances} = this.steps.get(item)
-        for (let {item: input, amount} of recepie.inputs) {
+        let {recipe, instances} = this.steps.get(item)
+        for (let {item: input, amount} of recipe.inputs) {
             if (this.storage.has(input) && this.storage.cur(input) >= amount * instances) {
                 continue
             }
@@ -107,10 +107,10 @@ export class Planner {
 
                 this.completed.set(item, false)
             } else if (a.kind === 1) {
-                let {item, amount} = a.recepie.output
+                let {item, amount} = a.recipe.output
                 if (!this.steps.has(item)) this.steps.set(item, {
                     instances: 0,
-                    recepie: a.recepie
+                    recipe: a.recipe
                 })
                 let obj = this.steps.get(item)
                 obj.instances += a.instances

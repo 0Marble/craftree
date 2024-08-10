@@ -1,4 +1,4 @@
-export class Recepie {
+export class Recipe {
     constructor(inputs, output, machine) {
         this.inputs = inputs
         this.output = output
@@ -20,14 +20,14 @@ export class Recepie {
     }
 }
 
-export class RecepieStore {
+export class RecipeStore {
     constructor() {
-        this.recepies = new Map()
+        this.recipes = new Map()
     }
 
     getItems() {
         let items = new Set()
-        for (let r of this.recepies.values()) {
+        for (let r of this.recipes.values()) {
             items.add(r.output.item)
             for (let i of r.inputs) {
                 items.add(i.item)
@@ -39,47 +39,47 @@ export class RecepieStore {
 
     getMachines() {
         let m = new Set()
-        for (let r of this.recepies.values()) {
+        for (let r of this.recipes.values()) {
             m.add(r.machine)
         }
         return m
     }
 
-    addRecepie(recepie) {
-        console.assert(!this.recepies.has(recepie.output.item))
-        this.recepies.set(recepie.output.item, recepie)
+    addRecipe(recipe) {
+        console.assert(!this.recipes.has(recipe.output.item))
+        this.recipes.set(recipe.output.item, recipe)
     }
 
-    removeRecepie(recepie) {
-        if (this.recepies.has(recepie.output.item)) {
-            this.recepies.delete(recepie.output.item)
+    removeRecipe(recipe) {
+        if (this.recipes.has(recipe.output.item)) {
+            this.recipes.delete(recipe.output.item)
         }
     }
 
-    getAllRecepies() {
-        return this.recepies.values()
+    getAllRecipes() {
+        return this.recipes.values()
     }
-    hasRecepie(item) {
-        return this.recepies.has(item)
+    hasRecipe(item) {
+        return this.recipes.has(item)
     }
-    getRecepie(item) {
-        console.assert(this.recepies.has(item))
-        return this.recepies.get(item)
+    getRecipe(item) {
+        console.assert(this.recipes.has(item))
+        return this.recipes.get(item)
     }
 
     toString() {
         let items = {}
-        for (let r of this.recepies.values()) {
+        for (let r of this.recipes.values()) {
             items[r.output.item] = r
         }
         let s = JSON.stringify(items)
         return s
     }
     static fromString(str) {
-        let rc = new RecepieStore()
+        let rc = new RecipeStore()
         let items = JSON.parse(str)
         for (let r of Object.values(items)) {
-            rc.addRecepie(new Recepie(
+            rc.addRecipe(new Recipe(
                 r.inputs,
                 r.output,
                 r.machine
