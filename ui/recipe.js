@@ -2,10 +2,10 @@ const recipe_table = document.getElementById("recipe_table")
 const recipe_form = document.getElementById("new_recipe_form")
 const recipe_inputs_div = document.getElementById("recipe_inputs")
 const add_input_button = document.getElementById("add_input_button")
+const recipe_outputs_div = document.getElementById("recipe_outputs")
+const add_output_button = document.getElementById("add_output_button")
 const add_recipe_button = document.getElementById("add_recipe_button")
 const reset_recipe_button = document.getElementById("reset_recipe_button")
-const target_item = document.getElementById("target_item")
-const target_amount = document.getElementById("target_amount")
 const machine = document.getElementById("recipe_machine")
 const machine_div = document.getElementById("machine_div")
 const import_button = document.getElementById("import_recipes_button")
@@ -37,10 +37,17 @@ import_button.addEventListener("change", () => {
 const input_item_class = "recipe_input_item"
 const input_amount_class = "recipe_input_amount"
 const input_class = "recipe_input_div"
-recipe_inputs_div.replaceChildren(addRecipeInputForm())
+const output_item_class = "recipe_output_item"
+const output_amount_class = "recipe_output_amount"
+const output_class = "recipe_output_div"
+
+clearRecipeForm()
 
 add_input_button.addEventListener("click", () => {
     recipe_inputs_div.append(addRecipeInputForm())
+})
+add_output_button.addEventListener("click", () => {
+    recipe_outputs_div.append(addRecipeOutputForm())
 })
 add_recipe_button.addEventListener("click", () => {
     let r = readRecipe()
@@ -63,28 +70,37 @@ function addRecipeInputForm(item, amount) {
         amount
     })
 }
+function addRecipeOutputForm(item, amount) {
+    return itemWithAmount({
+        div_class: output_class, 
+        input_item_class: output_item_class, 
+        input_amount_class: output_amount_class, 
+        getSuggestions: () => recipe_store.getItems(), 
+        item, 
+        amount
+    })
+}
 
 function clearRecipeForm(recipe) {
-    target_item.value = ""
-    target_amount.value = 1
     machine.value = ""
 
     recipe_inputs_div.replaceChildren()
+    recipe_outputs_div.replaceChildren()
     if (recipe === undefined) {
         recipe_inputs_div.append(addRecipeInputForm())
+        recipe_outputs_div.append(addRecipeOutputForm())
     } else {
-        target_item.value = recipe.output.item
-        target_amount.value = recipe.output.amount
         machine.value = recipe.machine
         for (let {item, amount} of recipe.inputs) {
             recipe_inputs_div.append(addRecipeInputForm(item, amount))
+        }
+        for (let {item, amount} of recipe.outputs) {
+            recipe_outputs_div.append(addRecipeOutputForm(item, amount))
         }
     }
 }
 
 function readRecipe() {
-    let target = {item: target_item.value, amount: parseInt(target_amount.value)}
-
     let input_items = document.getElementsByClassName(input_item_class)
     let input_amounts = document.getElementsByClassName(input_amount_class)
     console.assert(input_items.length === input_amounts.length)
@@ -101,9 +117,23 @@ function readRecipe() {
         inputs.push({item, amount})
     }
 
-    return new Recipe(inputs, target, machine.value)
-}
+    let output_items = document.getElementsByClassName(output_item_class)
+    let output_amounts = document.getElementsByClassName(output_amount_class)
+    console.assert(output_items.length === output_amounts.length)
+    let outputs_map = new Map()
+    for (let i = 0; i < output_items.length; i++) {
+        let item = output_items[i].value
+        let amount = parseInt(output_amounts[i].value)
+        if (!outputs_map.has(item)) outputs_map.set(item, amount)
+        else outputs_map.set(item, amount + outputs_map.get(item))
+    }
+    let outputs = []
+    for (let [item, amount] of outputs_map) {
+        outputs.push({item, amount})
+    }
 
+    return new Recipe(inputs, outputs, machine.value)
+}
 
 function addRecipeToTable(recipe) {
     let new_row = document.createElement("tr")

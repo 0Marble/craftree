@@ -91,14 +91,18 @@ export class RecipeStore {
     }
 
     removeRecipe(recipe) {
-        if (this.items.has(recipe.output.item)) {
+        for (let {item} of recipe.outputs) {
+            if (!this.items.has(recipe.outputs.item)) {
+                continue
+            }
             for (let {idx} of this.items.get(recipe.output.item)) {
-                if (this.recipes[idx] === recipe) {
-                    this.items.delete(idx)
-                    this.free.add(idx)
-                    this.prices.clear()
-                    break
+                if (this.recipes[idx] !== recipe) {
+                    continue
                 }
+                this.items.delete(idx)
+                this.free.add(idx)
+                this.prices.clear()
+                break
             }
         }
     }
