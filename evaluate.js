@@ -29,22 +29,38 @@ export class Evaluator {
             }
             amount -= stored
         }
-        if (!this.recipe_store.hasRecipe(item)) {
+        if (!this.recipe_store.hasRecipes(item)) {
             outs.push(Node.Get(item, amount))
             return outs
         } 
-        let recipe = this.recipe_store.getRecipe(item)
-        console.assert(recipe.output.item === item, item, amount, recipe)
+
+        let recipe = null
+        let out_index = null
+        let min_price = null
+        for (let {recipe: r, out_index: o} of this.recipe_store.getRecipes(item)) {
+            let price = this.recipe_store.getRecipePrice(r)
+            for (let {item, amount} of r.inputs) {
+                let cur = storage.cur(item)
+                if (cur >= amount) price -= amount * this.recipe_store.getItemPrice(item)
+                else price -= cur * this.recipe_store.getItemPrice(item)
+            }
+            if (min_price === null || min_price > price) {
+                min_price = price
+                recipe = r
+                out_index = o
+            }
+        }
+        console.assert(recipe !== null, item, this.recipe_store.hasRecipes(item), this.recipe_store.getRecipes(item))
         
         let reqs = []
-        let instances = Math.ceil(amount / recipe.output.amount);
+        let instances = Math.ceil(amount / recipe.outputs[out_index].amount);
         for (let {item, amount} of recipe.inputs) {
             for (let node of this._evaluate(item, amount * instances, storage)) {
                 reqs.push(node)
             }
         }
 
-        let crafted = instances * recipe.output.amount
+        let crafted = instances * recipe.outputs[out_index].amount
         console.assert(crafted >= amount)
         let node = Node.Craft(recipe, instances, reqs) 
         outs.push(node)

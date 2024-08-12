@@ -1,13 +1,15 @@
 export class Recipe {
-    constructor(inputs, output, machine) {
+    constructor(inputs, outputs, machine) {
         this.inputs = inputs
-        this.output = output
+        this.outputs = outputs
         this.machine = machine 
     }
 
     print() {
-        let {item, amount} = this.output
-        let lhs = `${item} x${amount}`
+        let lhs = ""
+        for (let {item, amount} of this.outputs) {
+            lhs += `${item} x${amount}, `
+        }
         let rhs = ""
         for (let {item, amount} of this.inputs) {
             rhs += `${item} x${amount}, `
@@ -22,69 +24,139 @@ export class Recipe {
 
 export class RecipeStore {
     constructor() {
-        this.recipes = new Map()
+        this.items = new Map()
+        this.recipes = []
+        this.free = new Set()
+        this.prices = new Map()
     }
 
     getItems() {
-        let items = new Set()
-        for (let r of this.recipes.values()) {
-            items.add(r.output.item)
-            for (let i of r.inputs) {
-                items.add(i.item)
-            }
-        }
-
-        return items
+        return this.items.keys()
     }
 
     getMachines() {
         let m = new Set()
-        for (let r of this.recipes.values()) {
+        for (let r of this.getAllRecipes()) {
             m.add(r.machine)
         }
         return m
     }
 
+    getRecipePrice(recipe) {
+        let price = 0
+        for (let {item, amount} of recipe.inputs) {
+            price += this.getItemPrice(item) * amount
+        }
+        return price
+    }
+
+    getItemPrice(item) {
+        console.assert(this.items.has(item), item)
+        if (this.prices.has(item)) return this.prices.get(item)
+        let price = 1
+        for (let {recipe} of this.getRecipes(item)) {
+            let cost = this.getRecipePrice(recipe)
+            let out = 0
+            for (let {item, amount} of recipe.outputs) {
+                out += amount
+            }
+            cost /= out
+            if (cost < price) price = cost
+        }
+        this.prices.set(item, price)
+        return price
+    }
+
     addRecipe(recipe) {
-        console.assert(!this.recipes.has(recipe.output.item))
-        this.recipes.set(recipe.output.item, recipe)
+        this.prices.clear()
+
+        let idx = this.recipes.length
+        if (this.free.size !== 0) {
+            idx = this.free.keys().next().value
+            this.recipes[idx] = recipe
+            this.free.delete(idx)
+        } else {
+            this.recipes.push(recipe)
+        }
+
+        for (let i = 0; i < recipe.outputs.length; i++) {
+            let {item, amount} = recipe.outputs[i]
+            if (!this.items.has(item)) this.items.set(item, new Set())
+            let variants = this.items.get(item)
+            variants.add({ idx, out_index: i })
+        }
+        for (let {item, amount} of recipe.inputs) {
+            if (!this.items.has(item)) this.items.set(item, new Set())
+        }
     }
 
     removeRecipe(recipe) {
-        if (this.recipes.has(recipe.output.item)) {
-            this.recipes.delete(recipe.output.item)
+        if (this.items.has(recipe.output.item)) {
+            for (let {idx} of this.items.get(recipe.output.item)) {
+                if (this.recipes[idx] === recipe) {
+                    this.items.delete(idx)
+                    this.free.add(idx)
+                    this.prices.clear()
+                    break
+                }
+            }
         }
     }
 
     getAllRecipes() {
-        return this.recipes.values()
+        return this.recipes.filter((r, i) => !this.free.has(i))
     }
-    hasRecipe(item) {
-        return this.recipes.has(item)
+    hasRecipes(item) {
+        return this.items.has(item) && this.items.get(item).size !== 0
     }
-    getRecipe(item) {
-        console.assert(this.recipes.has(item))
-        return this.recipes.get(item)
+    getRecipes(item) {
+        let res = []
+        for (let i of this.items.get(item)) {
+            res.push({ recipe: this.recipes[i.idx], out_index: i.out_index })
+        }
+        return res
     }
 
+    static VERSION = 1
     toString() {
-        let items = {}
-        for (let r of this.recipes.values()) {
-            items[r.output.item] = r
+        let obj = { version: RecipeStore.VERSION, recipes: [] }
+        let index_map = []
+        for (let i = 0; i < this.recipes.length; i++) {
+            if (this.free.has(i)) {
+                continue
+            }
+            obj.recipes.push(this.recipes[i])
         }
-        let s = JSON.stringify(items)
+        let s = JSON.stringify(obj)
         return s
     }
+
     static fromString(str) {
+        let obj = JSON.parse(str)
+        if (obj.version === undefined || obj.version !== RecipeStore.VERSION) {
+            return RecipeStore._fromStringOld(obj)
+        }
         let rc = new RecipeStore()
-        let items = JSON.parse(str)
-        for (let r of Object.values(items)) {
+        for (let r of Object.values(obj.recipes)) {
             rc.addRecipe(new Recipe(
                 r.inputs,
-                r.output,
+                r.outputs,
                 r.machine
             ))
         }
+        return rc
+    }
+
+    static _fromStringOld(obj) {
+        let rc = new RecipeStore()
+        for (let r of Object.values(obj)) {
+            rc.addRecipe(new Recipe(
+                r.inputs,
+                [r.output],
+                r.machine
+            ))
+        }
+        console.log(rc)
         return rc
     }
 }

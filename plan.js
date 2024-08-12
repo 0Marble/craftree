@@ -87,8 +87,9 @@ export class Planner {
             if (node.kind === Node.GET_KIND) {
                 this.storage.put(node.item, node.amount)
             } else {
-                let {item, amount} = node.recipe.output
-                this.storage.put(item, amount * node.instances)
+                for (let {item, amount} of node.recipe.outputs) {
+                    this.storage.put(item, amount * node.instances)
+                }
                 for (let {item, amount} of node.recipe.inputs) {
                     this.storage.get(item, amount * node.instances)
                 }
@@ -98,8 +99,9 @@ export class Planner {
             if (node.kind === Node.GET_KIND) {
                 this.storage.get(node.item, node.amount)
             } else {
-                let {item, amount} = node.recipe.output
-                this.storage.get(item, amount * node.instances)
+                for (let {item, amount} of node.recipe.outputs) {
+                    this.storage.get(item, amount * node.instances)
+                }
                 for (let {item, amount} of node.recipe.inputs) {
                     this.storage.put(item, amount * node.instances)
                 }
@@ -118,7 +120,10 @@ export class Planner {
         if (node.kind === Node.GET_KIND) {
             return this.storage.cur(node.item) >= node.amount
         } else if (node.kind === Node.CRAFT_KIND) {
-            return this.storage.cur(node.recipe.output.item) >= node.instances * node.recipe.output.amount
+            for (let {item, amount} of node.recipe.outputs) {
+                if (this.storage.cur(item) < amount * node.instances) return false
+            }
+            return true
         }
     }
 

@@ -109,7 +109,10 @@ function addRecipeToTable(recipe) {
     let new_row = document.createElement("tr")
     let output = document.createElement("th")
     output.scope = "row"
-    output.append(`${recipe.output.item} x${recipe.output.amount}`)
+
+    for (let {item, amount} of recipe.outputs) {
+        output.append(`${item} x${amount}, `)
+    }
 
     let inputs = document.createElement("td")
     for (let {item, amount} of recipe.inputs) {
