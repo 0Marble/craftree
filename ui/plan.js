@@ -7,6 +7,7 @@ const craft_button = document.getElementById("evaluate_craft")
 const add_target_button = document.getElementById("add_target")
 
 import { Planner } from "../plan.js"
+import { Node } from "../graph.js"
 import { recipe_store } from "./recipe.js"
 import { itemWithAmount } from "./components.js"
 
@@ -42,8 +43,7 @@ function evaluateCraft() {
 
 function redraw() {
     drawStorage()
-    drawRequirements()
-    drawToCraft()
+    drawNodes()
 }
 
 function drawStorage() {
@@ -64,42 +64,29 @@ function drawStorage() {
     storage_div.replaceChildren(ul)
 }
 
-function drawRequirements() {
-    let ul = document.createElement("ul")
-    for (let [item, amount] of planner.getRequirements()) {
+
+function drawNodes() {
+    let ol = document.createElement("ol")
+    for (let node of planner.getNodes()) {
         let li = document.createElement("li")
         let chk = document.createElement("input")
         chk.type = "checkbox"
+        chk.disabled = !planner.isAvailable(node)
+        chk.checked = planner.isCompleted(node)
+
         chk.addEventListener("click", () => {
-            console.assert(chk.checked)
-            chk.disabled = true
-            planner.completeRequirement(item)
+            planner.setCompleted(node, chk.checked)
             redraw()
         })
 
-        li.append(chk, `${item} x${amount}`)
-        ul.append(li)
+        let text = ""
+        if (node.kind === Node.GET_KIND) {
+            text = `Get ${node.item} x${node.amount}`
+        } else {
+            text = `Craft (${node.recipe.print()}) x${node.instances}`
+        }
+        li.append(chk, text)
+        ol.append(li)
     }
-    requirements_div.replaceChildren(ul)
-}
-
-function drawToCraft() {
-    let ul = document.createElement("ul")
-    for (let [item, {recipe, instances}] of planner.getSteps()) {
-        let li = document.createElement("li")
-        let chk = document.createElement("input")
-        chk.type = "checkbox"
-        chk.disabled = !planner.isStepAvailable(item)
-
-        chk.addEventListener("click", () => {
-            console.assert(chk.checked)
-            chk.disabled = true
-            planner.completeStep(item)
-            redraw()
-        })
-
-        li.append(chk, `(${recipe.print()}) x${instances}`)
-        ul.append(li)
-    }
-    steps_div.replaceChildren(ul)
+    steps_div.replaceChildren(ol)
 }

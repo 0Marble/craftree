@@ -5,9 +5,8 @@ export class Planner {
     constructor() {
         this.targets = new Map()
         this.storage = new Storage()
-        this.reqs = new Map()
-        this.steps = new Map()
         this.completed = new Map()
+        this.nodes = []
     }
 
     addTarget(item, amount) {
@@ -25,18 +24,42 @@ export class Planner {
     reset() {
         this.targets = new Map()
         this.storage = new Storage()
-        this.reqs = new Map()
-        this.steps = new Map()
-        this.completed = new Map()
+        this.nodes = []
     }
 
     recalculate(recipe_store) {
         let nodes = new Evaluator(recipe_store).evaluate(this.targets, this.storage)
-        this.reqs.clear()
-        this.steps.clear()
-        console.log(nodes)
+        this._setNodes(nodes)
+    }
+
+    _setNodes(nodes) {
+        this.nodes = []
         for (let n of nodes) {
-            this._summarizeGraph(n)
+            this._addNode(n)
+        }
+        this.nodes.sort((a, b) => a.depth - b.depth)
+        for (let i = 0; i < this.nodes.length; i++) {
+            this.nodes[i].idx = i
+        }
+    }
+
+    _addNode(node) {
+        if (node.idx !== undefined) return this.nodes[node.idx].depth
+        node.idx = this.nodes.length
+        if (node.kind === Node.GET_KIND) {
+            this.nodes.push(node)
+            node.depth = 0
+            node.completed = false
+            return 0
+        } else if (node.kind === Node.CRAFT_KIND) {
+            this.nodes.push(node)
+            node.depth = 0
+            node.completed = false
+            for (let n of node.reqs) {
+                let d = this._addNode(n)
+                if (d + 1 > node.depth) node.depth = d + 1
+            }
+            return node.depth
         }
     }
 
@@ -49,82 +72,65 @@ export class Planner {
         }
         this.recalculate(recipe_store)
     }
-    completeRequirement(item) {
-        console.assert(this.reqs.has(item))
-        console.assert(this.completed.has(item))
-        this.storage.put(item, this.reqs.get(item))
-        this.completed.set(item, true)
-    }
-    completeStep(item) {
-        console.assert(this.steps.has(item))
-        console.assert(this.completed.has(item))
-        let {recipe, instances} = this.steps.get(item)
-        let target_amount = recipe.output.amount * instances
-        this.completed.set(item, true)
-        this.storage.put(item, target_amount)
-        for (let {item, amount} of recipe.inputs) {
-            this.storage.get(item, amount * instances)
-        }
-    }
-
-    getRequirements() {
-        let res = new Map()
-        for (let [item, amount] of this.reqs) {
-            if (!this.completed.get(item)) res.set(item, amount)
-        }
-        return res
-    }
-    getSteps() {
-        let res = new Map()
-        for (let [item, {recipe, instances}] of this.steps) {
-            if (!this.completed.get(item)) 
-                res.set(item, {recipe, instances})
-        }
-        return res
-    }
     getStorage() {
         return this.storage
     }
     getTargets() {
         return this.targets
     }
-    isStepAvailable(item) {
-        console.assert(this.steps.has(item), item)
-        let {recipe, instances} = this.steps.get(item)
-        for (let {item: input, amount} of recipe.inputs) {
-            if (this.storage.cur(input) >= amount * instances) {
-                continue
+
+    setCompleted(node, completed) {
+        this.nodes[node.idx].completed = completed
+        if (completed) {
+            if (node.kind === Node.GET_KIND) {
+                this.storage.put(node.item, node.amount)
+            } else {
+                let {item, amount} = node.recipe.output
+                this.storage.put(item, amount * node.instances)
+                for (let {item, amount} of node.recipe.inputs) {
+                    this.storage.get(item, amount * node.instances)
+                }
             }
-            return false
+        } else {
+            if (node.kind === Node.GET_KIND) {
+                this.storage.get(node.item, node.amount)
+            } else {
+                let {item, amount} = node.recipe.output
+                this.storage.get(item, amount * node.instances)
+                for (let {item, amount} of node.recipe.inputs) {
+                    this.storage.put(item, amount * node.instances)
+                }
+            }
+        }
+    }
+
+    isAvailable(node) {
+        if (node.kind === Node.GET_KIND) return true
+        for (let n of this.nodes[node.idx].reqs) {
+            if (!n.completed) return false
         }
         return true
     }
 
-    _summarizeGraph(node) {
-        if (node.kind === Node.GET_KIND) {
-            console.log("GET NODE", node)
-            let item = node.item
-            let amount = node.amount
-            if (!this.reqs.has(item)) this.reqs.set(item, amount)
-            else this.reqs.set(item, this.reqs.get(item) + amount)
+    isCompleted(node) {
+        return this.nodes[node.idx].completed
+    }
 
-            this.completed.set(item, false)
-        } else if (node.kind === Node.CRAFT_KIND) {
-            console.log("CRAFT NODE", node)
-            let {item, amount} = node.recipe.output
-            if (!this.steps.has(item)) this.steps.set(item, {
-                instances: 0,
-                recipe: node.recipe
-            })
-            let obj = this.steps.get(item)
-            obj.instances += node.instances
-            this.completed.set(item, false)
-
-            for (let r of node.reqs) {
-                this._summarizeGraph(r)
+    getNodes() {
+        let res = []
+        for (let node of this.nodes) {
+            if (node.kind === Node.GET_KIND) {
+                res.push({ kind: node.kind, item: node.item, amount: node.amount, idx: node.idx })
+            } else if (node.kind === Node.CRAFT_KIND) {
+                res.push({
+                    kind: node.kind, 
+                    recipe: node.recipe, 
+                    instances: node.instances, 
+                    idx: node.idx,
+                    reqs: node.reqs.map((n) => n.idx),
+                })
             }
-        } else {
-            console.assert(false, node, Node.CRAFT_KIND, Node.GET_KIND)
         }
+        return res
     }
 }
