@@ -56,7 +56,7 @@ reset_recipe_button.addEventListener("click", () => {
 function addRecipeInputForm(item, amount) {
     return itemWithAmount({
         div_class: input_class, 
-        item_input_class: input_item_class, 
+        input_item_class: input_item_class, 
         input_amount_class: input_amount_class, 
         getSuggestions: () => recipe_store.getItems(), 
         item, 

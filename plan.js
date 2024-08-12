@@ -35,6 +35,8 @@ export class Planner {
 
     _setNodes(nodes) {
         this.nodes = []
+        this.completed = []
+
         for (let n of nodes) {
             this._addNode(n)
         }
@@ -63,7 +65,7 @@ export class Planner {
     }
 
     setAmountInStorage(item, amount, recipe_store) {
-        if (this.storage.has(item)) {
+        if (this.storage.cur(item) !== 0) {
             this.storage.get(item, this.storage.cur(item))
         } 
         if (amount > 0) {

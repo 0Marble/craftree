@@ -86,14 +86,14 @@ class SimulatedStorage {
             if (collected + x.amount < amount) {
                 collected += x.amount
                 to_remove.push(x)
-                res.push(x.node)
+                if (x.node) res.push(x.node)
             } else if (collected + x.amount === amount) {
                 to_remove.push(x)
-                res.push(x.node)
+                if (x.node) res.push(x.node)
                 break
             } else if (collected < amount && collected + x.amount > amount) {
                 x.amount -= amount - collected
-                res.push(x.node)
+                if (x.node) res.push(x.node)
                 break
             } else {
                 console.assert(false, item, amount, res, this.storage)
