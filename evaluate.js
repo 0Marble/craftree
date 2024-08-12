@@ -1,4 +1,4 @@
-import { Node } from "./graph.js"
+import { Node, Squasher } from "./graph.js"
 
 export class Evaluator {
     constructor(recipe_store) {
@@ -13,32 +13,30 @@ export class Evaluator {
                 nodes.push(n)
             }
         }
-        return this._squash(nodes)
+        return new Squasher(nodes).squash()
     }
 
-    _squash(nodes) {
-        return nodes
-    }
 
     _evaluate(item, amount, storage) {
         console.assert(amount > 0, item, amount)
-        let reqs = []
+        let outs = []
         let stored = storage.cur(item)
         if (stored >= amount) {
             return storage.get(item, amount)
         } else {
             for (let node of storage.get(item, stored)) {
-                reqs.push(node)
+                outs.push(node)
             }
             amount -= stored
         }
         if (!this.recipe_store.hasRecipe(item)) {
-            reqs.push(Node.Get(item, amount))
-            return reqs
+            outs.push(Node.Get(item, amount))
+            return outs
         } 
         let recipe = this.recipe_store.getRecipe(item)
         console.assert(recipe.output.item === item, item, amount, recipe)
         
+        let reqs = []
         let instances = Math.ceil(amount / recipe.output.amount);
         for (let {item, amount} of recipe.inputs) {
             for (let node of this._evaluate(item, amount * instances, storage)) {
@@ -49,11 +47,12 @@ export class Evaluator {
         let crafted = instances * recipe.output.amount
         console.assert(crafted >= amount)
         let node = Node.Craft(recipe, instances, reqs) 
+        outs.push(node)
         if (crafted > amount) {
             console.assert(storage.cur(item) === 0, item, storage)
             storage.put(item, crafted - amount, node)
         }
-        return [node]
+        return outs
     }
 }
 
