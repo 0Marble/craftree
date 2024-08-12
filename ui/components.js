@@ -1,38 +1,32 @@
 import { Suggestions  } from "./suggestions.js"
 
-export function itemWithAmount(
-    input_class, 
-    input_item_class, 
-    input_amount_class, 
-    //// optional ////
-    getSuggestions,
-    item, 
-    amount, 
-) {
+// div_class, input_item_class, input_amount_class, getSuggestions?, onClick?, item?, amount?
+export function itemWithAmount(args) {
     let div = document.createElement("div")
-    div.className = input_class 
+    div.className = args.div_class
     let item_input = document.createElement("input")
     item_input.type = "text"
-    item_input.className = input_item_class 
-    if (getSuggestions !== undefined){
-        new Suggestions(div, item_input, getSuggestions)
+    item_input.className = args.input_item_class 
+    if (args.getSuggestions !== undefined){
+        new Suggestions(div, item_input, args.getSuggestions)
     }
 
     let amount_input = document.createElement("input")
     amount_input.type = "number"
-    amount_input.className = input_amount_class 
+    amount_input.className = args.input_amount_class 
     amount_input.value = 1
 
     let del = document.createElement("button")
     del.addEventListener("click", (e) => {
         div.remove()
+        if (args.onClick !== undefined) args.onClick(e)
     })
     del.append("Del")
 
-    console.assert((item === undefined) === (amount === undefined))
-    if (item !== undefined) {
-        item_input.value = item
-        amount_input.value = amount
+    console.assert((args.item === undefined) === (args.amount === undefined))
+    if (args.item !== undefined) {
+        item_input.value = args.item
+        amount_input.value = args.amount
     }
     
     div.append(item_input, "x", amount_input, del)

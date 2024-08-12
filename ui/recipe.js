@@ -24,7 +24,7 @@ export_button.addEventListener("click", () => {
     let s = recipe_store.toString()
     saveAsTextFile("recipes.json", s)
 })
-import_button.addEventListener("click", () => {
+import_button.addEventListener("change", () => {
     readFromTextFile(import_button.files[0], (s) => {
         recipe_store = RecipeStore.fromString(s);
         recipe_table.replaceChildren()
@@ -54,14 +54,14 @@ reset_recipe_button.addEventListener("click", () => {
 })
 
 function addRecipeInputForm(item, amount) {
-    return itemWithAmount(
-        input_class, 
-        input_item_class, 
-        input_amount_class, 
-        () => recipe_store.getItems(), 
+    return itemWithAmount({
+        div_class: input_class, 
+        item_input_class: input_item_class, 
+        input_amount_class: input_amount_class, 
+        getSuggestions: () => recipe_store.getItems(), 
         item, 
         amount
-    )
+    })
 }
 
 function clearRecipeForm(recipe) {

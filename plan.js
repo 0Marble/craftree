@@ -5,7 +5,7 @@ export class Planner {
     constructor() {
         this.targets = new Map()
         this.storage = new Storage()
-        this.completed = new Map()
+        this.completed = []
         this.nodes = []
     }
 
@@ -25,6 +25,7 @@ export class Planner {
         this.targets = new Map()
         this.storage = new Storage()
         this.nodes = []
+        this.completed = []
     }
 
     recalculate(recipe_store) {
@@ -49,12 +50,10 @@ export class Planner {
         if (node.kind === Node.GET_KIND) {
             this.nodes.push(node)
             node.depth = 0
-            node.completed = false
             return 0
         } else if (node.kind === Node.CRAFT_KIND) {
             this.nodes.push(node)
             node.depth = 0
-            node.completed = false
             for (let n of node.reqs) {
                 let d = this._addNode(n)
                 if (d + 1 > node.depth) node.depth = d + 1
@@ -80,8 +79,9 @@ export class Planner {
     }
 
     setCompleted(node, completed) {
-        this.nodes[node.idx].completed = completed
+        this.completed[node.idx] = completed
         if (completed) {
+            console.assert(this.isAvailableToCheck(node))
             if (node.kind === Node.GET_KIND) {
                 this.storage.put(node.item, node.amount)
             } else {
@@ -92,6 +92,7 @@ export class Planner {
                 }
             }
         } else {
+            console.assert(this.isAvailableToUncheck(node))
             if (node.kind === Node.GET_KIND) {
                 this.storage.get(node.item, node.amount)
             } else {
@@ -104,33 +105,26 @@ export class Planner {
         }
     }
 
-    isAvailable(node) {
+    isAvailableToCheck(node) {
         if (node.kind === Node.GET_KIND) return true
         for (let n of this.nodes[node.idx].reqs) {
-            if (!n.completed) return false
+            if (!this.completed[n.idx]) return false
         }
         return true
     }
+    isAvailableToUncheck(node) {
+        if (node.kind === Node.GET_KIND) {
+            return this.storage.cur(node.item) >= node.amount
+        } else if (node.kind === Node.CRAFT_KIND) {
+            return this.storage.cur(node.recipe.output.item) >= node.instances * node.recipe.output.amount
+        }
+    }
 
     isCompleted(node) {
-        return this.nodes[node.idx].completed
+        return this.completed[node.idx]
     }
 
     getNodes() {
-        let res = []
-        for (let node of this.nodes) {
-            if (node.kind === Node.GET_KIND) {
-                res.push({ kind: node.kind, item: node.item, amount: node.amount, idx: node.idx })
-            } else if (node.kind === Node.CRAFT_KIND) {
-                res.push({
-                    kind: node.kind, 
-                    recipe: node.recipe, 
-                    instances: node.instances, 
-                    idx: node.idx,
-                    reqs: node.reqs.map((n) => n.idx),
-                })
-            }
-        }
-        return res
+        return this.nodes
     }
 }

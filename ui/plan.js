@@ -1,7 +1,6 @@
 
 const craft_targets = document.getElementById("targets_list")
 const storage_div = document.getElementById("storage")
-const requirements_div = document.getElementById("requirements")
 const steps_div = document.getElementById("steps")
 const craft_button = document.getElementById("evaluate_craft")
 const add_target_button = document.getElementById("add_target")
@@ -19,14 +18,22 @@ let planner = new Planner()
 craft_button.addEventListener("click", () => evaluateCraft())
 add_target_button.addEventListener("click", () => {
     craft_targets.append(
-        itemWithAmount(
-            target_div_class, 
-            target_item_class,
-            target_amount_class,
-            () => recipe_store.getItems(),
-        ) 
+        itemWithAmount({
+            div_class: target_div_class,
+            input_item_class: target_item_class,
+            input_amount_class: target_amount_class,
+            getSuggestions: () => recipe_store.getItems(),
+        })
     )
 })
+craft_targets.append(
+    itemWithAmount({
+        div_class: target_div_class,
+        input_item_class: target_item_class,
+        input_amount_class: target_amount_class,
+        getSuggestions: () => recipe_store.getItems(),
+    })
+)
 
 function evaluateCraft() {
     let target_items = document.getElementsByClassName(target_item_class)
@@ -71,8 +78,8 @@ function drawNodes() {
         let li = document.createElement("li")
         let chk = document.createElement("input")
         chk.type = "checkbox"
-        chk.disabled = !planner.isAvailable(node)
         chk.checked = planner.isCompleted(node)
+        chk.disabled = !(chk.checked && planner.isAvailableToUncheck(node) || !chk.checked && planner.isAvailableToCheck(node))
 
         chk.addEventListener("click", () => {
             planner.setCompleted(node, chk.checked)
