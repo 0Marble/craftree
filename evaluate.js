@@ -1,3 +1,4 @@
+import { Node } from "./graph.js"
 
 export class Evaluator {
     constructor(recipe_store) {
@@ -5,66 +6,115 @@ export class Evaluator {
     }
 
     evaluate(targets, storage) {
-        let actions = []
-        let sim = storage.clone()
+        let nodes = []
+        let s = new SimulatedStorage(storage)
         for (let [item, amount] of targets) {
-            this._evaluate(item, amount, actions, sim)
-        }
-        return actions
-    }
-
-    _evaluate(item, amount, actions, storage) {
-        console.assert(amount > 0, item, amount)
-        if (storage.has(item)) {
-            let stored = storage.cur(item)
-            if (stored >= amount) {
-                storage.get(item, amount)
-                return
-            } else {
-                storage.get(item, stored)
-                amount -= stored
+            for (let n of this._evaluate(item, amount, s)) {
+                nodes.push(n)
             }
         }
+        return this._squash(nodes)
+    }
+
+    _squash(nodes) {
+        return nodes
+    }
+
+    _evaluate(item, amount, storage) {
+        console.assert(amount > 0, item, amount)
+        let reqs = []
+        let stored = storage.cur(item)
+        if (stored >= amount) {
+            return storage.get(item, amount)
+        } else {
+            for (let node of storage.get(item, stored)) {
+                reqs.push(node)
+            }
+            amount -= stored
+        }
         if (!this.recipe_store.hasRecipe(item)) {
-            actions.push(Action.Get(item, amount))
-            return
+            reqs.push(Node.Get(item, amount))
+            return reqs
         } 
         let recipe = this.recipe_store.getRecipe(item)
         console.assert(recipe.output.item === item, item, amount, recipe)
         
         let instances = Math.ceil(amount / recipe.output.amount);
         for (let {item, amount} of recipe.inputs) {
-            this._evaluate(item, amount * instances, actions, storage)
+            for (let node of this._evaluate(item, amount * instances, storage)) {
+                reqs.push(node)
+            }
         }
 
         let crafted = instances * recipe.output.amount
         console.assert(crafted >= amount)
+        let node = Node.Craft(recipe, instances, reqs) 
         if (crafted > amount) {
-            console.assert(!storage.has(item))
-            storage.put(item, crafted - amount)
+            console.assert(storage.cur(item) === 0, item, storage)
+            storage.put(item, crafted - amount, node)
         }
-        actions.push(Action.Craft(recipe, instances))
+        return [node]
     }
 }
 
-class Action {
-    constructor() {
-        this.kind = 0
+class SimulatedStorage {
+    constructor(storage) {
+        this.storage = new Map()
+        for (let {item, amount} of storage.items()) {
+            let access = new Set()
+            access.add({ amount, node: null })
+            this.storage.set(item, access)
+        }
     }
-    static Get(item, amount) {
-        let a = new Action()
-        a.kind = 0
-        a.item = item
-        a.amount = amount
-        return a
+
+    put(item, amount, node) {
+        if (!this.storage.has(item)) this.storage.set(item, new Set())
+        let access = this.storage.get(item)
+        for (let x of access) {
+            console.assert(x.node !== node, access, item, amount, node)
+        }
+        access.add({ amount, node })
     }
-    static Craft(recipe, instances) {
-        let a = new Action()
-        a.kind = 1
-        a.recipe = recipe
-        a.instances = instances
-        return a
+
+    get(item, amount) {
+        let res = []
+        if (!this.storage.has(item)) return res
+
+        let collected = 0
+        let to_remove = []
+        let access = this.storage.get(item)
+        for (let x of access) {
+            if (collected + x.amount < amount) {
+                collected += x.amount
+                to_remove.push(x)
+                res.push(x.node)
+            } else if (collected + x.amount === amount) {
+                to_remove.push(x)
+                res.push(x.node)
+                break
+            } else if (collected < amount && collected + x.amount > amount) {
+                x.amount -= amount - collected
+                res.push(x.node)
+                break
+            } else {
+                console.assert(false, item, amount, res, this.storage)
+            }
+        }
+
+        for (let x of to_remove) {
+            access.delete(x)
+        }
+
+        return res
     }
+
+    cur(item) {
+        if (!this.storage.has(item)) return 0
+        let sum = 0
+        for (let {amount} of this.storage.get(item)) sum += amount
+        return sum
+    }
+
 }
 
 export class Storage {
@@ -86,12 +136,8 @@ export class Storage {
         return this.cur(item)
     }
 
-    has(item) {
-        return this.stored.has(item)
-    }
-
     cur(item) {
-        console.assert(this.stored.has(item), this, item)
+        if (!this.stored.has(item)) return 0
         let amount = this.stored.get(item)
         console.assert(amount > 0, this, item)
         return amount

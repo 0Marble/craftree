@@ -1,4 +1,5 @@
 import { Storage, Evaluator } from "./evaluate.js"
+import { Node } from "./graph.js"
 
 export class Planner {
     constructor() {
@@ -30,8 +31,13 @@ export class Planner {
     }
 
     recalculate(recipe_store) {
-        let actions = new Evaluator(recipe_store).evaluate(this.targets, this.storage)
-        this._summarizeActions(actions)
+        let nodes = new Evaluator(recipe_store).evaluate(this.targets, this.storage)
+        this.reqs.clear()
+        this.steps.clear()
+        console.log(nodes)
+        for (let n of nodes) {
+            this._summarizeGraph(n)
+        }
     }
 
     setAmountInStorage(item, amount, recipe_store) {
@@ -86,7 +92,7 @@ export class Planner {
         console.assert(this.steps.has(item), item)
         let {recipe, instances} = this.steps.get(item)
         for (let {item: input, amount} of recipe.inputs) {
-            if (this.storage.has(input) && this.storage.cur(input) >= amount * instances) {
+            if (this.storage.cur(input) >= amount * instances) {
                 continue
             }
             return false
@@ -94,30 +100,31 @@ export class Planner {
         return true
     }
 
-    _summarizeActions(actions) {
-        this.reqs.clear()
-        this.steps.clear()
+    _summarizeGraph(node) {
+        if (node.kind === Node.GET_KIND) {
+            console.log("GET NODE", node)
+            let item = node.item
+            let amount = node.amount
+            if (!this.reqs.has(item)) this.reqs.set(item, amount)
+            else this.reqs.set(item, this.reqs.get(item) + amount)
 
-        for (let a of actions) {
-            if (a.kind === 0) {
-                let item = a.item
-                let amount = a.amount
-                if (!this.reqs.has(item)) this.reqs.set(item, amount)
-                else this.reqs.set(item, this.reqs.get(item) + amount)
+            this.completed.set(item, false)
+        } else if (node.kind === Node.CRAFT_KIND) {
+            console.log("CRAFT NODE", node)
+            let {item, amount} = node.recipe.output
+            if (!this.steps.has(item)) this.steps.set(item, {
+                instances: 0,
+                recipe: node.recipe
+            })
+            let obj = this.steps.get(item)
+            obj.instances += node.instances
+            this.completed.set(item, false)
 
-                this.completed.set(item, false)
-            } else if (a.kind === 1) {
-                let {item, amount} = a.recipe.output
-                if (!this.steps.has(item)) this.steps.set(item, {
-                    instances: 0,
-                    recipe: a.recipe
-                })
-                let obj = this.steps.get(item)
-                obj.instances += a.instances
-                this.completed.set(item, false)
-            } else {
-                console.assert(false, a)
+            for (let r of node.reqs) {
+                this._summarizeGraph(r)
             }
+        } else {
+            console.assert(false, node, Node.CRAFT_KIND, Node.GET_KIND)
         }
     }
 }
