@@ -38,12 +38,14 @@ export class Evaluator {
         let out_index = null
         let min_price = null
         for (let {recipe: r, out_index: o} of this.recipe_store.getRecipes(item)) {
-            let price = this.recipe_store.getRecipePrice(r)
+            let instances = Math.ceil(amount / r.outputs[o].amount);
+            let price = this.recipe_store.getRecipePrice(r) 
             for (let {item, amount} of r.inputs) {
                 let cur = storage.cur(item)
-                if (cur >= amount) price -= amount * this.recipe_store.getItemPrice(item)
+                if (cur >= amount * instances) price -= amount * this.recipe_store.getItemPrice(item)
                 else price -= cur * this.recipe_store.getItemPrice(item)
             }
+            price *= instances
             if (min_price === null || min_price > price) {
                 min_price = price
                 recipe = r
@@ -67,6 +69,11 @@ export class Evaluator {
         if (crafted > amount) {
             console.assert(storage.cur(item) === 0, item, storage)
             storage.put(item, crafted - amount, node)
+        }
+        for (let i = 0; i < recipe.outputs.length; i++) {
+            if (i === out_index) continue
+            let {item, amount} = recipe.outputs[i]
+            storage.put(item, amount * instances, node)
         }
         return outs
     }
