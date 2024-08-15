@@ -92,14 +92,16 @@ export class RecipeStore {
 
     removeRecipe(recipe) {
         for (let {item} of recipe.outputs) {
-            if (!this.items.has(recipe.outputs.item)) {
+            if (!this.items.has(item)) {
                 continue
             }
-            for (let {idx} of this.items.get(recipe.output.item)) {
+            let variants = this.items.get(item)
+            for (let i of variants) {
+                let { idx } = i
                 if (this.recipes[idx] !== recipe) {
                     continue
                 }
-                this.items.delete(idx)
+                variants.delete(i)
                 this.free.add(idx)
                 this.prices.clear()
                 break
@@ -115,8 +117,9 @@ export class RecipeStore {
     }
     getRecipes(item) {
         let res = []
-        for (let i of this.items.get(item)) {
-            res.push({ recipe: this.recipes[i.idx], out_index: i.out_index })
+        let variants = this.items.get(item)
+        for (let { idx, out_index } of variants) {
+            res.push({ recipe: this.recipes[idx], out_index })
         }
         return res
     }
@@ -125,11 +128,8 @@ export class RecipeStore {
     toString() {
         let obj = { version: RecipeStore.VERSION, recipes: [] }
         let index_map = []
-        for (let i = 0; i < this.recipes.length; i++) {
-            if (this.free.has(i)) {
-                continue
-            }
-            obj.recipes.push(this.recipes[i])
+        for (let recipe of this.getAllRecipes()) {
+            obj.recipes.push(recipe)
         }
         let s = JSON.stringify(obj)
         return s
