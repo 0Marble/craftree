@@ -73,6 +73,11 @@ export class Planner {
         }
         this.recalculate(recipe_store)
     }
+    addToStorage(item, amount, recipe_store) {
+        if (amount === 0) return
+        this.storage.put(item, amount)
+        this.recalculate(recipe_store)
+    }
     getStorage() {
         return this.storage
     }
